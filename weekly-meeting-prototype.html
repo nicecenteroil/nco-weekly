@@ -1,0 +1,470 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>NCO Weekly — ประชุมทีม DSR</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --paper:#FAF8F5; --card:#FFFFFF; --ink:#191C19; --ink2:#5C635C; --ink3:#8E958E;
+  --line:#E4E0D9; --o:#E8631A; --green:#0E7A4B; --amber:#B7791F; --red:#B4291F;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;padding:0}
+body{background:var(--paper);color:var(--ink);font-family:Sarabun,system-ui,sans-serif;font-size:15px;line-height:1.55}
+button,input,select,textarea{font-family:inherit;font-size:inherit;color:inherit}
+.wrap{max-width:840px;margin:0 auto;padding:0 14px 110px}
+
+header{position:sticky;top:0;z-index:20;background:rgba(250,248,245,.94);backdrop-filter:blur(8px);border-bottom:1px solid var(--line)}
+.hbar{max-width:840px;margin:0 auto;padding:12px 14px 0;display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
+.brand{font-weight:700;letter-spacing:-.01em}
+.brand span{color:var(--o)}
+.hmeta{color:var(--ink2);font-size:13px}
+nav{max-width:840px;margin:0 auto;padding:8px 14px 0;display:flex;gap:2px}
+nav button{background:none;border:0;padding:9px 14px 11px;border-bottom:2px solid transparent;color:var(--ink2);font-weight:600;cursor:pointer}
+nav button.on{color:var(--ink);border-bottom-color:var(--o)}
+nav button:focus-visible{outline:2px solid var(--o);outline-offset:-2px}
+
+h2{font-size:19px;margin:24px 0 4px;letter-spacing:-.01em}
+.sub{color:var(--ink2);font-size:13px;margin:0 0 12px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:10px}
+.btn{background:var(--ink);color:#fff;border:0;border-radius:8px;padding:10px 16px;font-weight:600;cursor:pointer}
+.btn.o{background:var(--o)}
+.btn.ghost{background:none;border:1px solid var(--line);color:var(--ink)}
+.btn.sm{padding:6px 11px;font-size:13.5px}
+.btn:active{transform:translateY(1px)}
+.chip{display:inline-flex;align-items:center;font-size:12px;font-weight:600;padding:2px 8px;border-radius:20px;border:1px solid var(--line);color:var(--ink2);white-space:nowrap}
+.chip.carry{border-color:#E9C46A;background:#FDF6E3;color:#8A6412}
+
+.sess{margin-top:10px}
+.shead{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;padding:14px 14px 0}
+.stitle{font-weight:700;font-size:16px}
+.stime{font-variant-numeric:tabular-nums;color:var(--ink2);font-size:13.5px}
+.gauge{margin:10px 14px 0;height:8px;border-radius:4px;background:#EFEBE4;overflow:hidden;display:flex}
+.gauge i{display:block;height:100%;border-right:1px solid #fff}
+.gmeta{padding:7px 14px 12px;font-size:12.5px;color:var(--ink2);display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap}
+.gmeta b{color:var(--ink)}
+.gmeta .over{color:var(--red)}
+
+.rows{border-top:1px solid var(--line)}
+.row{display:grid;grid-template-columns:56px 1fr;gap:8px;padding:10px 14px 10px 8px;border-bottom:1px solid var(--line);align-items:start}
+.row:last-child{border-bottom:0}
+.at{font-variant-numeric:tabular-nums;color:var(--ink3);font-size:12.5px;padding-top:11px;text-align:right}
+.t-in{width:100%;border:1px solid transparent;border-radius:7px;padding:7px 9px;background:transparent;font-weight:600;line-height:1.4}
+.t-in:hover{border-color:var(--line)}
+.t-in:focus{border-color:var(--o);background:#fff;outline:none}
+.ctl{display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-top:5px;padding-left:9px}
+.ctl select,.ctl input[type=number]{border:1px solid var(--line);border-radius:6px;padding:3px 7px;font-size:12.5px;background:#fff}
+.ctl input[type=number]{width:58px;text-align:right;font-variant-numeric:tabular-nums}
+.unit{font-size:12.5px;color:var(--ink3);margin-left:-3px}
+.icon{background:none;border:1px solid var(--line);border-radius:6px;width:27px;height:27px;color:var(--ink2);cursor:pointer;line-height:1;padding:0}
+.icon:hover{border-color:var(--ink3);color:var(--ink)}
+.n-in{width:100%;border:1px dashed var(--line);border-radius:7px;padding:6px 9px;background:transparent;font-size:13.5px;color:var(--ink2);margin-top:6px}
+.n-in:focus{border-color:var(--o);border-style:solid;background:#fff;outline:none}
+.quick{display:flex;gap:8px;padding:10px 14px 14px;border-top:1px dashed var(--line)}
+.quick input{flex:1;border:1px solid var(--line);border-radius:8px;padding:9px 11px;background:#fff}
+
+.stage{padding:18px 16px;border:1px solid var(--line);border-radius:12px;background:#fff}
+.kicker{color:var(--ink2);font-size:12.5px;font-weight:600}
+.stage h3{margin:6px 0 10px;font-size:21px;line-height:1.35;letter-spacing:-.01em}
+.stage h3 input{font-size:21px;font-weight:700;width:100%;border:1px solid transparent;border-radius:8px;padding:4px 8px;margin-left:-8px;background:transparent}
+.stage h3 input:hover{border-color:var(--line)}
+.stage h3 input:focus{border-color:var(--o);background:#fff;outline:none}
+.clock{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin:4px 0 14px}
+.timer{font-size:44px;font-weight:700;font-variant-numeric:tabular-nums;letter-spacing:-.03em;line-height:1}
+.timer.over{color:var(--red)}
+.of{color:var(--ink3);font-size:14px;font-variant-numeric:tabular-nums}
+.pace{font-size:13px;font-weight:600;padding:4px 10px;border-radius:20px}
+.pace.ok{background:#EAF3EE;color:var(--green)}
+.pace.late{background:#FBEAE7;color:var(--red)}
+.acts{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}
+label{font-size:12.5px;color:var(--ink2);font-weight:600;display:block;margin-bottom:3px}
+textarea,.f-in{width:100%;padding:9px 11px;border:1px solid var(--line);border-radius:8px;background:#fff}
+textarea{resize:vertical;min-height:64px;line-height:1.5}
+.two{display:grid;grid-template-columns:1fr 130px;gap:8px;margin-top:10px}
+.queue{margin-top:8px}
+.qrow{display:grid;grid-template-columns:56px 1fr;gap:8px;padding:6px 0;font-size:13.5px;align-items:baseline}
+.qrow .at{padding-top:0}
+.qrow.now{font-weight:600}
+.qrow.done span,.qrow.moved span{color:var(--ink3);text-decoration:line-through}
+.qsess{font-size:12.5px;font-weight:700;color:var(--ink3);padding:12px 0 2px}
+.park li{list-style:none;font-size:13.5px;padding:5px 0 5px 16px;position:relative;color:var(--ink2)}
+.park li::before{content:"";position:absolute;left:2px;top:13px;width:5px;height:5px;border-radius:50%;background:#E9C46A}
+
+pre.out{white-space:pre-wrap;background:#fff;border:1px solid var(--line);border-radius:10px;padding:14px;font-family:Sarabun,sans-serif;font-size:13.5px;line-height:1.6;margin:0}
+.person{display:flex;gap:10px;padding:10px 0;border-top:1px solid var(--line);align-items:flex-start}
+.avatar{width:30px;height:30px;border-radius:50%;background:#EFEBE4;color:var(--ink2);font-weight:700;font-size:12.5px;display:grid;place-items:center;flex:0 0 auto}
+.big{font-size:26px;font-weight:700;font-variant-numeric:tabular-nums;letter-spacing:-.02em}
+.bhead{display:flex;justify-content:space-between;align-items:baseline;gap:10px;flex-wrap:wrap;padding:14px}
+.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:24px;background:var(--ink);color:#fff;padding:10px 18px;border-radius:22px;font-size:14px;opacity:0;pointer-events:none;transition:opacity .18s;z-index:60}
+.toast.show{opacity:1}
+.hint{font-size:12.5px;color:var(--ink3)}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+@media (max-width:520px){.row{grid-template-columns:46px 1fr;padding-left:4px}.at{font-size:11.5px}}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="hbar">
+    <div class="brand">NCO <span>Weekly</span></div>
+    <div class="hmeta" id="hmeta"></div>
+  </div>
+  <nav>
+    <button id="t1" class="on" onclick="go('plan')">วางแผน</button>
+    <button id="t2" onclick="go('run')">ประชุม</button>
+    <button id="t3" onclick="go('recap')">สรุป</button>
+  </nav>
+</header>
+
+<div class="wrap">
+  <section id="plan"></section>
+  <section id="run" hidden></section>
+  <section id="recap" hidden></section>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+/* =====================================================================
+   NCO Weekly — prototype (state อยู่ในหน่วยความจำ ยังไม่ต่อ backend)
+   ของจริง: sessions / items / actions จะอยู่บน Google Sheets ผ่าน GAS
+   ===================================================================== */
+
+const OWNERS={'DSR':'DSR','Castrol':'Castrol','NICE - Poom':'NICE · ภูมิ','NICE - Fern':'NICE · เฟิร์น'};
+
+const M={
+  dateLabel:'เสาร์ที่ 12 กันยายน 2026',
+  week:2,
+  theme:'Collection / ปิดตัวเลขเดือน / Local Activation',
+  sessions:[
+    {id:'am',title:'ช่วงเช้า — เคลียร์เอกสาร / Collection',start:'09:30',end:'12:00'},
+    {id:'pm',title:'ช่วงบ่าย — ประชุมทีม',                start:'13:30',end:'16:00'}
+  ],
+  items:[
+    {id:1,s:'am',t:'DSR สรุปเอกสาร ส่งเงินให้ครบ',            own:'DSR',        min:45,carry:false,note:'',act:'',who:'',st:'todo'},
+    {id:2,s:'am',t:'ตรวจ Collection รายคน / บิลค้างจ่าย',      own:'NICE - Poom',min:45,carry:false,note:'',act:'',who:'',st:'todo'},
+    {id:3,s:'am',t:'สรุปภาษีป้ายที่ค้าง — เคลียร์ให้จบเดือนนี้',own:'NICE - Fern',min:30,carry:true, note:'อวยชัย > มัดหมี่, อุทัย > ภัทรลักษณ์',act:'',who:'',st:'todo'},
+    {id:4,s:'am',t:'ตั้งหนี้เดือนใหม่',                        own:'NICE - Fern',min:20,carry:false,note:'',act:'',who:'',st:'todo'},
+    {id:5,s:'pm',t:'Update Local Activation เข้า Promotion',  own:'NICE - Fern',min:25,carry:false,note:'',act:'',who:'',st:'todo'},
+    {id:6,s:'pm',t:'แพลนตัวเลข / แพลนวิ่ง PJP สัปดาห์หน้า',    own:'DSR',        min:45,carry:false,note:'',act:'',who:'',st:'todo'},
+    {id:7,s:'pm',t:'จัดการ Outlet ตาย / ร้านใหม่ 15/5',        own:'NICE - Poom',min:30,carry:true, note:'Active outlet เป้าเดือนละ 70 ร้าน',act:'',who:'',st:'todo'},
+    {id:8,s:'pm',t:'เก็บฝา Auto — ใครยังไม่ได้ลด',             own:'NICE - Poom',min:20,carry:false,note:'',act:'',who:'',st:'todo'},
+    {id:9,s:'pm',t:'รายชื่อลูกค้างานสัมนาช่าง',                own:'Castrol',    min:15,carry:false,note:'',act:'',who:'',st:'todo'}
+  ],
+  park:[],
+  lastActions:[
+    {act:'ส่งรายชื่อร้านใหม่ที่ยังไม่ปักหมุด GEOTAG',who:'พี่นุช', done:true},
+    {act:'สรุปยอดลิตรเฉลี่ยร้านที่ต่ำกว่า −20%',     who:'มะปราง',done:false},
+    {act:'เคลียร์ Cash loan ที่เหลือ แจ้งในห้องข่าว',  who:'เฟิร์น', done:true}
+  ]
+};
+
+let TAB='plan',RUN={idx:-1,sec:0,on:false,tick:null},SEQ=10;
+const $=s=>document.querySelector(s);
+const esc=s=>(s||'').replace(/[<>&"]/g,c=>({'<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;'}[c]));
+const pad=n=>String(n).padStart(2,'0');
+const mins=t=>{const[h,m]=t.split(':').map(Number);return h*60+m;};
+const hhmm=v=>pad(Math.floor(v/60)%24)+':'+pad(v%60);
+const inSess=id=>M.items.filter(i=>i.s===id);
+const planned=id=>inSess(id).reduce((a,i)=>a+i.min,0);
+const cap=s=>mins(s.end)-mins(s.start);
+const seq=()=>M.sessions.flatMap(s=>inSess(s.id));
+const byId=id=>M.items.find(i=>i.id===id);
+
+function startAt(item){
+  const s=M.sessions.find(x=>x.id===item.s);
+  let m=mins(s.start);
+  for(const i of inSess(s.id)){if(i.id===item.id)break;m+=i.min;}
+  return hhmm(m);
+}
+function toast(msg){const t=$('#toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),1700);}
+function copy(txt){navigator.clipboard?.writeText(txt).then(()=>toast('คัดลอกแล้ว — วางในไลน์กลุ่มได้เลย'),()=>toast('คัดลอกไม่สำเร็จ'));}
+function go(tab){TAB=tab;['plan','run','recap'].forEach((s,n)=>{$('#'+s).hidden=(s!==tab);$('#t'+(n+1)).classList.toggle('on',s===tab);});render();}
+
+/* ================= PLAN ================= */
+function planView(){
+  return `
+  <h2>วาระ ${M.dateLabel}</h2>
+  <p class="sub">Week ${M.week} · ${esc(M.theme)}</p>
+
+  ${M.sessions.map(sessionCard).join('')}
+
+  <div class="acts" style="margin-top:16px">
+    <button class="btn o" onclick="share()">สร้างข้อความแจ้งทีม</button>
+    <button class="btn ghost" onclick="go('run')">เริ่มประชุม</button>
+  </div>
+
+  <h2>ค้างจากสัปดาห์ที่แล้ว</h2>
+  <p class="sub">งานที่ยังไม่ปิด ดันขึ้นวาระได้ในคลิกเดียว</p>
+  <div class="card" style="padding:4px 14px 12px">
+    ${M.lastActions.map((a,n)=>`
+      <div class="person">
+        <div class="avatar">${esc(a.who.slice(0,2))}</div>
+        <div style="flex:1">
+          <div style="${a.done?'text-decoration:line-through;color:var(--ink3)':''}">${esc(a.act)}</div>
+          <div class="sub" style="margin:2px 0 0">${esc(a.who)} · ${a.done?'ปิดแล้ว':'<b style="color:var(--amber)">ยังไม่ปิด</b>'}</div>
+        </div>
+        ${a.done?'':`<button class="btn ghost sm" onclick="pull(${n})">ขึ้นวาระ</button>`}
+      </div>`).join('')}
+  </div>`;
+}
+
+function sessionCard(s){
+  const list=inSess(s.id);
+  return `
+  <div class="card sess">
+    <div class="shead">
+      <div class="stitle">${esc(s.title)}</div>
+      <div class="stime">${s.start}–${s.end}</div>
+    </div>
+    <div class="gauge" id="g-${s.id}">${gaugeBars(s)}</div>
+    <div class="gmeta" id="gm-${s.id}">${gaugeText(s)}</div>
+    <div class="rows">${list.length?list.map(itemRow).join(''):'<div class="row"><div></div><div class="hint" style="padding:8px 9px">ยังไม่มีหัวข้อในช่วงนี้</div></div>'}</div>
+    <div class="quick">
+      <input type="text" id="q-${s.id}" placeholder="พิมพ์หัวข้อที่แจ้งเพิ่มเข้ามา แล้วกด Enter"
+             onkeydown="if(event.key==='Enter')quickAdd('${s.id}')">
+      <button class="btn ghost sm" onclick="quickAdd('${s.id}')">เพิ่ม</button>
+    </div>
+  </div>`;
+}
+
+function gaugeBars(s){
+  const c=cap(s),list=inSess(s.id),p=planned(s.id),base=Math.max(c,p)||1;
+  return list.map(i=>`<i style="width:${i.min/base*100}%;background:${i.carry?'#E9C46A':'var(--o)'};opacity:${i.carry?1:.72}"></i>`).join('');
+}
+function gaugeText(s){
+  const c=cap(s),p=planned(s.id),d=c-p,n=inSess(s.id).length;
+  return `<span>${n} หัวข้อ · วางไว้ <b>${p}</b> นาที จากช่วงเวลา ${c} นาที</span>`+
+    (d>=0?`<span>เหลือว่าง <b>${d}</b> นาที</span>`
+         :`<span class="over">เกินเวลา <b>${-d}</b> นาที — ตัดหัวข้อหรือย้ายไปสัปดาห์หน้า</span>`);
+}
+function paint(){
+  M.sessions.forEach(s=>{
+    const g=document.getElementById('g-'+s.id); if(g)g.innerHTML=gaugeBars(s);
+    const m=document.getElementById('gm-'+s.id); if(m)m.innerHTML=gaugeText(s);
+  });
+  document.querySelectorAll('[data-at]').forEach(el=>{const i=byId(+el.dataset.at);if(i)el.textContent=startAt(i);});
+}
+
+function itemRow(i){
+  const other=i.s==='am'?'บ่าย':'เช้า';
+  return `
+  <div class="row">
+    <div class="at" data-at="${i.id}">${startAt(i)}</div>
+    <div>
+      <input class="t-in" value="${esc(i.t)}" aria-label="ชื่อหัวข้อ" oninput="byId(${i.id}).t=this.value">
+      <div class="ctl">
+        <select onchange="byId(${i.id}).own=this.value">
+          ${Object.keys(OWNERS).map(k=>`<option value="${k}" ${k===i.own?'selected':''}>${OWNERS[k]}</option>`).join('')}
+        </select>
+        <input type="number" min="5" step="5" value="${i.min}" onchange="byId(${i.id}).min=Math.max(5,+this.value||5);paint()">
+        <span class="unit">นาที</span>
+        ${i.carry?'<span class="chip carry">ยกมา</span>':''}
+        <button class="icon" title="เลื่อนขึ้น" onclick="move(${i.id},-1)">↑</button>
+        <button class="icon" title="เลื่อนลง" onclick="move(${i.id},1)">↓</button>
+        <button class="icon" title="ย้ายไปช่วง${other}" onclick="swap(${i.id})">⇄</button>
+        <button class="icon" title="ลบหัวข้อ" onclick="del(${i.id})">×</button>
+      </div>
+      <input class="n-in" value="${esc(i.note)}" placeholder="โน้ตสั้น ๆ (ไม่ใส่ก็ได้)" oninput="byId(${i.id}).note=this.value">
+    </div>
+  </div>`;
+}
+
+function quickAdd(sid){
+  const el=document.getElementById('q-'+sid),t=el.value.trim(); if(!t)return;
+  M.items.push({id:++SEQ,s:sid,t,own:'NICE - Poom',min:15,carry:false,note:'',act:'',who:'',st:'todo'});
+  render(); document.getElementById('q-'+sid).focus(); toast('เพิ่มแล้ว ตั้งไว้ 15 นาที ปรับได้');
+}
+function pull(n){
+  const a=M.lastActions[n];
+  M.items.push({id:++SEQ,s:'pm',t:'ติดตาม: '+a.act,own:'NICE - Poom',min:10,carry:true,note:a.who,act:'',who:'',st:'todo'});
+  render(); toast('ดันขึ้นวาระช่วงบ่ายแล้ว');
+}
+function del(id){M.items=M.items.filter(x=>x.id!==id);render();}
+function swap(id){const i=byId(id);i.s=(i.s==='am'?'pm':'am');render();toast('ย้ายช่วงแล้ว');}
+function move(id,d){
+  const i=byId(id),list=inSess(i.s),k=list.indexOf(i),j=k+d;
+  if(j<0||j>=list.length)return;
+  const a=M.items.indexOf(list[k]),b=M.items.indexOf(list[j]);
+  [M.items[a],M.items[b]]=[M.items[b],M.items[a]];
+  render();
+}
+
+function share(){
+  const txt=`📌 ประชุมทีม DSR — ${M.dateLabel}
+หัวข้อหลัก: ${M.theme}
+
+`+M.sessions.map(s=>`▪️ ${s.title}  (${s.start}–${hhmm(mins(s.start)+planned(s.id))})
+`+inSess(s.id).map(i=>`  ${startAt(i)}  ${i.t} — ${OWNERS[i.own]} (${i.min}น.)`).join('\n')).join('\n\n')+`
+
+ใครมีเรื่องแจ้งเพิ่ม ตอบในไลน์ก่อนศุกร์ 17:00 เดี๋ยวแทรกเข้าวาระให้`;
+  copy(txt); alert(txt);
+}
+
+/* ================= RUN ================= */
+function runView(){
+  const S=seq();
+  if(!S.length)return '<h2>ยังไม่มีหัวข้อ</h2><p class="sub">กลับไปเพิ่มในหน้าวางแผนก่อน</p>';
+  if(RUN.idx<0){
+    const f=S[0],s=M.sessions.find(x=>x.id===f.s);
+    return `
+    <h2>เริ่มงานวันเสาร์</h2>
+    <p class="sub">${M.dateLabel} · ${S.length} หัวข้อ · ${M.sessions.map(x=>x.start+'–'+x.end).join(' และ ')}</p>
+    <div class="stage">
+      <div class="kicker">${esc(s.title)} · หัวข้อแรก</div>
+      <h3>${esc(f.t)}</h3>
+      <div class="ctl" style="padding-left:0"><span class="chip">${OWNERS[f.own]}</span><span class="chip">${f.min} นาที</span></div>
+      <div class="acts"><button class="btn o" onclick="startMeeting()">เริ่มจับเวลา</button></div>
+      <p class="hint" style="margin-top:12px">ระหว่างประชุม แก้ชื่อหัวข้อ แทรกหัวข้อ หรือขยายเวลาได้ตลอด</p>
+    </div>
+    ${queueView()}`;
+  }
+  const i=S[RUN.idx],over=RUN.sec>i.min*60,s=M.sessions.find(x=>x.id===i.s);
+  const behind=doneMin()*60-elapsed();
+  const dn=S.filter(x=>x.st!=='todo').length;
+
+  return `
+  <h2>${esc(s.title)}</h2>
+  <p class="sub">หัวข้อ ${RUN.idx+1}/${S.length} · ปิดไปแล้ว ${dn}</p>
+
+  <div class="stage">
+    <div class="kicker">${OWNERS[i.own]} · ตั้งไว้ ${i.min} นาที</div>
+    <h3><input value="${esc(i.t)}" aria-label="ชื่อหัวข้อ" oninput="byId(${i.id}).t=this.value"></h3>
+    <div class="clock">
+      <div class="timer ${over?'over':''}">${pad(Math.floor(RUN.sec/60))}:${pad(RUN.sec%60)}</div>
+      <div class="of">/ ${pad(i.min)}:00</div>
+      <span class="pace ${behind>=0?'ok':'late'}">${behind>=0?'เร็วกว่าแผน '+Math.round(behind/60)+' นาที':'ช้ากว่าแผน '+Math.abs(Math.round(behind/60))+' นาที'}</span>
+      <button class="btn ghost sm" onclick="toggle()">${RUN.on?'พัก':'เดินต่อ'}</button>
+      <button class="btn ghost sm" onclick="bump(${i.id})">+5 นาที</button>
+    </div>
+
+    <label for="nn">บันทึกที่คุยกัน</label>
+    <textarea id="nn" oninput="byId(${i.id}).note=this.value" placeholder="สรุปสั้น ๆ ว่าตกลงอะไร">${esc(i.note)}</textarea>
+    <div class="two">
+      <div><label for="na">Next action</label>
+        <input class="f-in" id="na" value="${esc(i.act)}" oninput="byId(${i.id}).act=this.value" placeholder="สิ่งที่ต้องไปทำต่อ"></div>
+      <div><label for="nw">ใครทำ</label>
+        <input class="f-in" id="nw" value="${esc(i.who)}" oninput="byId(${i.id}).who=this.value" placeholder="ชื่อ"></div>
+    </div>
+
+    <div class="acts">
+      <button class="btn" onclick="close_('done')">ปิดหัวข้อ ไปต่อ</button>
+      <button class="btn ghost" onclick="close_('moved')">ยกไปสัปดาห์หน้า</button>
+      <button class="btn ghost" onclick="insert()">+ แทรกหัวข้อ</button>
+      <button class="btn ghost" onclick="parkAdd()">+ Parking lot</button>
+    </div>
+  </div>
+
+  ${M.park.length?`<div class="card park" style="padding:10px 14px;margin-top:12px">
+    <div class="sub" style="margin:0 0 2px">Parking lot — เรื่องนอกวาระ ไว้คุยท้ายประชุม</div>
+    <ul style="margin:0;padding:0">${M.park.map(p=>`<li>${esc(p)}</li>`).join('')}</ul></div>`:''}
+
+  ${queueView()}`;
+}
+
+function queueView(){
+  const S=seq(),cur=RUN.idx>=0?S[RUN.idx]:null;
+  return '<h2>ลำดับทั้งวัน</h2><div class="queue">'+M.sessions.map(s=>
+    `<div class="qsess">${esc(s.title)} · ${s.start}–${s.end}</div>`+
+    inSess(s.id).map(i=>`<div class="qrow ${i.st} ${cur&&cur.id===i.id?'now':''}"><div class="at">${startAt(i)}</div><span>${esc(i.t)}</span></div>`).join('')
+  ).join('')+'</div>';
+}
+
+function doneMin(){return seq().filter(i=>i.st!=='todo').reduce((a,i)=>a+i.min,0);}
+function elapsed(){let s=RUN.sec;seq().forEach(i=>{if(i.st!=='todo')s+=i.spent||i.min*60;});return s;}
+function startMeeting(){RUN.idx=0;RUN.sec=0;toggle();}
+function toggle(){
+  RUN.on=!RUN.on; clearInterval(RUN.tick);
+  if(RUN.on)RUN.tick=setInterval(()=>{RUN.sec++;paintTimer();},1000);
+  render();
+}
+function paintTimer(){
+  const el=document.querySelector('.timer'); if(!el)return;
+  el.textContent=pad(Math.floor(RUN.sec/60))+':'+pad(RUN.sec%60);
+  el.classList.toggle('over',RUN.sec>seq()[RUN.idx].min*60);
+}
+function bump(id){byId(id).min+=5;render();toast('ขยายหัวข้อนี้อีก 5 นาที');}
+function insert(){
+  const t=prompt('หัวข้อที่แทรกเข้ามา:'); if(!t)return;
+  const cur=seq()[RUN.idx],at=M.items.indexOf(cur);
+  M.items.splice(at+1,0,{id:++SEQ,s:cur.s,t,own:'NICE - Poom',min:10,carry:false,note:'',act:'',who:'',st:'todo'});
+  render(); toast('แทรกเป็นหัวข้อถัดไปแล้ว');
+}
+function parkAdd(){const v=prompt('เรื่องนอกวาระที่โผล่ขึ้นมา:');if(v){M.park.push(v);render();}}
+function close_(st){
+  const S=seq(),i=S[RUN.idx]; i.st=st; i.spent=RUN.sec;
+  if(RUN.idx<S.length-1){RUN.idx++;RUN.sec=0;render();}
+  else{clearInterval(RUN.tick);RUN.on=false;toast('จบแล้ว — ไปหน้าสรุป');go('recap');}
+}
+
+/* ================= RECAP ================= */
+function minutesText(){
+  const acts=M.items.filter(i=>i.act),moved=M.items.filter(i=>i.st==='moved');
+  return `📝 สรุปประชุมทีม DSR — ${M.dateLabel}
+
+`+M.sessions.map(s=>{
+    const d=inSess(s.id).filter(i=>i.st==='done');
+    return d.length?`▪️ ${s.title}\n`+d.map(i=>`• ${i.t}${i.note?'\n   → '+i.note:''}`).join('\n'):'';
+  }).filter(Boolean).join('\n\n')+`
+
+✅ สิ่งที่ต้องไปทำต่อ
+${acts.length?acts.map(i=>`• ${i.act} — ${i.who||'ยังไม่ระบุคน'}`).join('\n'):'— ไม่มี —'}`+
+  (moved.length?'\n\n⏭ ยกไปสัปดาห์หน้า\n'+moved.map(i=>'• '+i.t).join('\n'):'')+
+  (M.park.length?'\n\n🅿️ เก็บไว้คุยรอบหน้า\n'+M.park.map(p=>'• '+p).join('\n'):'');
+}
+function recapView(){
+  const done=M.items.filter(i=>i.st==='done').length,moved=M.items.filter(i=>i.st==='moved').length;
+  if(!done&&!moved)return '<h2>ยังไม่มีสรุป</h2><p class="sub">สรุปจะถูกสร้างอัตโนมัติหลังปิดหัวข้อในหน้า “ประชุม”</p>';
+  const spent=M.items.reduce((a,i)=>a+(i.spent||0),0);
+  const acts=M.items.filter(i=>i.act),by={};
+  acts.forEach(i=>{const w=i.who||'ยังไม่ระบุคน';(by[w]=by[w]||[]).push(i.act);});
+
+  return `
+  <h2>สรุปการประชุม</h2>
+  <p class="sub">${M.dateLabel}</p>
+  <div class="card">
+    <div class="bhead">
+      <div><div class="big">${Math.round(spent/60)} นาที</div><div class="sub" style="margin:2px 0 0">ใช้จริง จากที่วางไว้ ${M.sessions.reduce((a,s)=>a+planned(s.id),0)} นาที</div></div>
+      <div style="text-align:right"><div class="big">${done}<span style="font-size:16px;color:var(--ink3)">/${M.items.length}</span></div><div class="sub" style="margin:2px 0 0">หัวข้อที่ปิดได้</div></div>
+    </div>
+  </div>
+
+  <h2>งานที่ต้องไปทำต่อ</h2>
+  <p class="sub">ที่ยังไม่ปิด จะเด้งขึ้นวาระสัปดาห์หน้า</p>
+  <div class="card" style="padding:4px 14px 12px">
+    ${Object.keys(by).length?Object.entries(by).map(([w,l])=>`
+      <div class="person"><div class="avatar">${esc(w.slice(0,2))}</div>
+        <div style="flex:1"><div style="font-weight:600">${esc(w)}</div>
+        ${l.map(a=>`<div style="color:var(--ink2);font-size:14px">• ${esc(a)}</div>`).join('')}</div></div>`).join('')
+      :'<p class="sub" style="padding:10px 0">ยังไม่มีใครได้รับงาน</p>'}
+  </div>
+
+  <h2>ข้อความส่งเข้าไลน์กลุ่ม</h2>
+  <p class="sub">กดคัดลอกแล้ววางได้เลย</p>
+  <pre class="out">${esc(minutesText())}</pre>
+  <div class="acts" style="margin-top:12px">
+    <button class="btn o" onclick="copy(minutesText())">คัดลอกสรุป</button>
+    <button class="btn ghost" onclick="nextWeek()">สร้างวาระสัปดาห์หน้า</button>
+  </div>`;
+}
+function nextWeek(){
+  const c=M.items.filter(i=>i.st==='moved'||(i.act&&i.who));
+  alert('สัปดาห์หน้าจะเริ่มด้วย '+c.length+' หัวข้อที่ยกมาอัตโนมัติ:\n\n'+
+    c.map(i=>'• '+(i.st==='moved'?i.t:'ติดตาม: '+i.act+' ('+i.who+')')).join('\n'));
+}
+
+/* ================= boot ================= */
+function render(){
+  $('#hmeta').textContent=M.dateLabel+' · Week '+M.week;
+  if(TAB==='plan') $('#plan').innerHTML=planView();
+  if(TAB==='run')  $('#run').innerHTML=runView();
+  if(TAB==='recap')$('#recap').innerHTML=recapView();
+}
+render();
+</script>
+</body>
+</html>

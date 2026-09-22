@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>NCO Weekly — ประชุมทีม DSR</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="app.css">
+</head>
+<body>
+
+<header>
+  <div class="hbar">
+    <div class="brand">NCO <span>Weekly</span></div>
+    <div class="hmeta" id="hmeta"></div>
+    <span id="save-status" class="hint" style="margin-left:auto"></span>
+  </div>
+  <nav>
+    <button id="t1" class="on" onclick="go('plan')">วางแผน</button>
+    <button id="t2" onclick="go('run')">ประชุม</button>
+    <button id="t3" onclick="go('recap')">สรุป</button>
+  </nav>
+</header>
+
+<div class="wrap">
+  <section id="plan"></section>
+  <section id="run" hidden></section>
+  <section id="recap" hidden></section>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script src="config.js"></script>
+<script src="api.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
