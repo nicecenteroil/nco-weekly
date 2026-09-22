@@ -90,7 +90,7 @@ E:\Projects\nco-weekly\
 ├─ api\                           ← ซอร์ส GAS เท่านั้น
 │  ├─ appsscript.json
 │  └─ Code.js
-└─ web\                           ← static site ที่จะขึ้น GitHub Pages
+└─ docs\                          ← static site ที่จะขึ้น GitHub Pages (ชื่อ docs เพื่อใช้กับ Pages)
    ├─ index.html
    ├─ app.css
    ├─ app.js
@@ -183,7 +183,7 @@ npx clasp create-script --help
 ```
 รายงานรายชื่อคำสั่งที่มีจริงให้ Poom ดู **แล้วรอยืนยันก่อนรัน create** — v3 เปลี่ยนชื่อคำสั่งบางตัว ถ้าคำสั่งที่เขียนใน PLAN นี้ไม่ตรงกับ `--help` ให้ยึด `--help` เป็นหลักและแจ้งความต่าง ห้ามเดา ห้ามลองสุ่ม flag
 
-**1.2 สร้างโฟลเดอร์ `api\` และ `web\`** (ยังว่าง)
+**1.2 สร้างโฟลเดอร์ `api\` และ `docs\`** (ยังว่าง)
 
 **1.3 เขียน `api\appsscript.json`**
 ```json
@@ -251,11 +251,11 @@ node tools\post.js getMeeting "{\"token\":\"wrong\"}"
 **ห้ามออกแบบใหม่ ห้ามเปลี่ยนสี ฟอนต์ layout หรือข้อความไทย** หน้าที่ในรอบนี้คือแยกไฟล์และต่อ API เท่านั้น
 
 แตกเป็น:
-- `web\index.html` — โครง + `<header>` + `<nav>` + 3 `<section>`
-- `web\app.css` — ยกบล็อก `<style>` มาทั้งก้อน ไม่แก้
-- `web\app.js` — ยก `<script>` มา แต่เปลี่ยน state เป็นข้อมูลจริง
-- `web\api.js` — ชั้นเรียก GAS
-- `web\config.js` — `{ API_URL: '...' }` ไฟล์เดียวที่ต้องแก้เวลา redeploy
+- `docs\index.html` — โครง + `<header>` + `<nav>` + 3 `<section>`
+- `docs\app.css` — ยกบล็อก `<style>` มาทั้งก้อน ไม่แก้
+- `docs\app.js` — ยก `<script>` มา แต่เปลี่ยน state เป็นข้อมูลจริง
+- `docs\api.js` — ชั้นเรียก GAS
+- `docs\config.js` — `{ API_URL: '...' }` ไฟล์เดียวที่ต้องแก้เวลา redeploy
 
 **`api.js`**
 ```js
@@ -291,7 +291,7 @@ async function call(action, payload){
 
 **หมายเหตุ: `gh` CLI ไม่มีบนเครื่อง repo สร้างด้วยมือไปแล้ว** — ใช้ `git remote add` เท่านั้น
 
-1. `web\CNAME` มีบรรทัดเดียว: `weekly.nicecenter.co.th`
+1. `docs\CNAME` มีบรรทัดเดียว: `weekly.nicecenter.co.th`
 2. `.gitignore` ต้องมีอย่างน้อย:
 ```
 node_modules/
