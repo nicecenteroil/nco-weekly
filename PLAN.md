@@ -38,6 +38,37 @@
 
 ---
 
+## ประสิทธิภาพ
+
+### GAS round-trip latency (วัดจริง 25 ก.ย. 2026)
+
+| ทรัพยากร | cold | warm (cached) |
+|---|---|---|
+| Static assets (app.js, api.js, css, fonts) | <650ms | <270ms ทุกตัว — browser cache |
+| GAS (`getUpcoming`) | 3,175ms–8,474ms | ขึ้นกับ warm instance — อาจได้ 566ms หรือ 8.5s ก็ได้ |
+
+GAS คือ latency ทั้งหมด static assets ไม่ใช่ปัญหา ไม่มี warm instance GAS ก็ cold start ใหม่ ไม่สัมพันธ์กับ browser cache
+
+### แก้แล้ว: stale-while-revalidate cache (commit `0ea2d36`)
+
+- โหลดครั้งแรก (ไม่มี cache): ทำงานเหมือนเดิม รอ GAS
+- โหลดครั้งถัดไป (มี cache): render จาก `localStorage` ทันที → ยิง GAS เบื้องหลัง → เทียบ → re-render ถ้าต่าง
+- **เปิดครั้งที่สองขึ้นใน 1ms** (render synchronous จาก cache, GAS ทำงานหลัง)
+- cache key: `nco_weekly_cache` · TTL 7 วัน · ทิ้ง cache เก่ากว่า 7 วัน
+- ถ้า background fetch ล้มเหลว: คงหน้าจอเดิมไว้ แสดง `"ใช้ข้อมูลล่าสุดเมื่อ HH:mm"` ที่ header
+- ถ้ายังไม่มี token: แสดง login ทันที ไม่ยิง API เลย
+
+### Retry policy (api.js `callRead_`)
+
+- `getUpcoming` และ `getMeeting` เท่านั้น: retry 1 ครั้งหลัง 1,500ms ถ้าเกิด transient error
+- **ห้าม retry คำสั่งเขียนเด็ดขาด**: `saveAgenda`, `closeItem`, `createMeeting`, `addParking`, `closeAction`, `rescheduleMeeting` — ยิงซ้ำจะได้ข้อมูลซ้อน
+
+### ค้างไว้รอบหน้า
+
+- **`handleCloseItem_` (api/Code.js)**: อ่าน `AGENDA_ITEMS` 2 ครั้งในคำขอเดียว (บรรทัด ~408 และ ~436) — แก้โดยใช้ `iData` ที่อ่านไปแล้วซ้ำ ลดเหลือ 1 ครั้ง ไม่กระทบ latency ตอนเปิดหน้า (ไม่อยู่ใน boot path) แต่ลด GAS quota เมื่อปิด action item
+
+---
+
 ## บริบทโปรเจกต์
 
 สร้างระบบใหม่ **`nco-weekly`** — เว็บแอปจัดการประชุมทีม DSR ประจำวันเสาร์ของ Nice Center Oil
