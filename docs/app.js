@@ -36,23 +36,24 @@ function updateSaveStatus(state, ts) {
   var el = document.getElementById('save-status');
   if (!el) return;
   if (state === 'saving') {
-    el.className = 'hint';
-    el.style.color = '';
-    el.style.cursor = '';
-    el.textContent = 'กำลังบันทึก…';
-    el.onclick = null;
+    el.className = 'hint'; el.style.color = ''; el.style.cursor = '';
+    el.textContent = 'กำลังบันทึก…'; el.onclick = null;
   } else if (state === 'ok') {
-    el.className = 'hint';
-    el.style.color = '';
-    el.style.cursor = '';
-    el.textContent = 'บันทึกแล้ว ' + ts;
-    el.onclick = null;
+    el.className = 'hint'; el.style.color = ''; el.style.cursor = '';
+    el.textContent = 'บันทึกแล้ว ' + ts; el.onclick = null;
   } else if (state === 'err') {
-    el.className = 'hint';
-    el.style.color = 'var(--red)';
-    el.style.cursor = 'pointer';
+    el.className = 'hint'; el.style.color = 'var(--red)'; el.style.cursor = 'pointer';
     el.textContent = 'บันทึกไม่สำเร็จ กดเพื่อลองใหม่';
     el.onclick = function() { saveAgenda(); };
+  } else if (state === 'stale') {
+    el.className = 'hint'; el.style.color = ''; el.style.cursor = '';
+    el.textContent = 'กำลังอัปเดต…'; el.onclick = null;
+  } else if (state === 'cached') {
+    el.className = 'hint'; el.style.color = 'var(--ink3)'; el.style.cursor = '';
+    el.textContent = 'ใช้ข้อมูลล่าสุดเมื่อ ' + ts; el.onclick = null;
+  } else if (state === 'clear') {
+    el.className = 'hint'; el.style.color = ''; el.style.cursor = '';
+    el.textContent = ''; el.onclick = null;
   }
 }
 
@@ -489,6 +490,32 @@ function applyReschedule(newDate) {
     });
 }
 
+/* ================= CACHE (stale-while-revalidate) ================= */
+var _CACHE_KEY = 'nco_weekly_cache';
+var _CACHE_TTL = 7 * 24 * 60 * 60 * 1000;
+
+function _saveCache(data) {
+  try {
+    localStorage.setItem(_CACHE_KEY, JSON.stringify({ ts: Date.now(), data: data }));
+  } catch (e) {}
+}
+
+function _loadCache() {
+  try {
+    var raw = localStorage.getItem(_CACHE_KEY);
+    if (!raw) return null;
+    var c = JSON.parse(raw);
+    if (!c || !c.ts || !c.data || !c.data.meeting) return null;
+    if (Date.now() - c.ts > _CACHE_TTL) { localStorage.removeItem(_CACHE_KEY); return null; }
+    return c;
+  } catch (e) { return null; }
+}
+
+function _cacheMeta(ts) {
+  var d = new Date(ts);
+  return pad(d.getHours()) + ':' + pad(d.getMinutes());
+}
+
 /* ================= boot + data mapping ================= */
 function todayStr() {
   var d = new Date();
@@ -641,14 +668,15 @@ function showError(msg) {
 
 function loadMeeting(date) {
   $('#plan').innerHTML = '<p class="sub" style="padding:40px 0">กำลังโหลด…</p>';
-  call('getMeeting', { date: date })
+  callRead_('getMeeting', { date: date })
     .then(function(data) {
       if (!data.meeting) { showCreatePrompt(); return; }
       mapData(data, date);
+      _saveCache(data);
       render();
     })
     .catch(function(err) {
-      if (String(err).indexOf('token ไม่ถูกต้อง') !== -1) {
+      if (err.authFailed) {
         localStorage.removeItem('nco_weekly_token');
         showLogin();
         var el = document.getElementById('lerr');
@@ -661,23 +689,50 @@ function loadMeeting(date) {
 
 function boot() {
   if (!getToken()) { showLogin(); return; }
-  $('#plan').innerHTML = '<p class="sub" style="padding:40px 0">กำลังโหลด…</p>';
-  call('getUpcoming', { today: todayStr() })
-    .then(function(data) {
-      if (!data.meeting) { showCreatePrompt(); return; }
-      mapData(data, data.meeting.date);
-      render();
-    })
-    .catch(function(err) {
-      if (String(err).indexOf('token ไม่ถูกต้อง') !== -1) {
-        localStorage.removeItem('nco_weekly_token');
-        showLogin();
-        var el = document.getElementById('lerr');
-        if (el) el.textContent = 'Passcode ไม่ถูกต้อง';
-      } else {
-        showError(String(err));
-      }
-    });
+  var _cached = _loadCache();
+  if (_cached) {
+    mapData(_cached.data, _cached.data.meeting.date);
+    render();
+    updateSaveStatus('stale');
+    callRead_('getUpcoming', { today: todayStr() })
+      .then(function(data) {
+        if (!data.meeting) { updateSaveStatus('cached', _cacheMeta(_cached.ts)); return; }
+        var freshStr = JSON.stringify(data);
+        var staleStr = JSON.stringify(_cached.data);
+        _saveCache(data);
+        if (freshStr !== staleStr && !RUN.on) { mapData(data, data.meeting.date); render(); }
+        updateSaveStatus('clear');
+      })
+      .catch(function(err) {
+        if (err.authFailed) {
+          localStorage.removeItem('nco_weekly_token');
+          showLogin();
+          var el = document.getElementById('lerr');
+          if (el) el.textContent = 'Passcode ไม่ถูกต้อง';
+        } else {
+          updateSaveStatus('cached', _cacheMeta(_cached.ts));
+        }
+      });
+  } else {
+    $('#plan').innerHTML = '<p class="sub" style="padding:40px 0">กำลังโหลด…</p>';
+    callRead_('getUpcoming', { today: todayStr() })
+      .then(function(data) {
+        if (!data.meeting) { showCreatePrompt(); return; }
+        mapData(data, data.meeting.date);
+        _saveCache(data);
+        render();
+      })
+      .catch(function(err) {
+        if (err.authFailed) {
+          localStorage.removeItem('nco_weekly_token');
+          showLogin();
+          var el = document.getElementById('lerr');
+          if (el) el.textContent = 'Passcode ไม่ถูกต้อง';
+        } else {
+          showError(String(err));
+        }
+      });
+  }
 }
 
 function render(){
