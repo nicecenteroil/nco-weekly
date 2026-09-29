@@ -6,6 +6,8 @@
 const OWNERS={'DSR':'DSR','Castrol':'Castrol','NICE - Poom':'NICE · ภูมิ','NICE - Fern':'NICE · เฟิร์น'};
 
 var M = null;
+var LIVE = false;   // true เมื่อได้ข้อมูลสดในเซสชันนี้แล้ว (ป้องกัน saveAgenda จาก stale cache)
+var _hiddenAt = 0;  // timestamp ที่ tab ถูกซ่อน ใช้กับ visibilitychange
 
 let TAB='plan',RUN={idx:-1,sec:0,on:false,tick:null},SEQ=0;
 const $=s=>document.querySelector(s);
@@ -58,12 +60,13 @@ function updateSaveStatus(state, ts) {
 }
 
 function markDirty() {
+  if (!LIVE) return;
   clearTimeout(_dirtyTimer);
   _dirtyTimer = setTimeout(saveAgenda, 1200);
 }
 
 function saveAgenda() {
-  if (!M) return;
+  if (!M || !LIVE) return;
   clearTimeout(_dirtyTimer);
   _dirtyTimer = null;
   updateSaveStatus('saving');
@@ -136,6 +139,8 @@ function planView(){
   return `
   <h2>วาระ ${M.dateLabel}</h2>
   <p class="sub">Week ${M.week} · ${esc(M.theme)}</p>
+
+  ${M.isPast ? '<div class="acts" style="margin-bottom:16px"><button id="next-week-btn" class="btn o" onclick="nextWeek()">สร้างวาระเสาร์หน้า</button></div>' : ''}
 
   ${M.sessions.map(sessionCard).join('')}
 
@@ -553,6 +558,7 @@ function mapData(data, date) {
     dateLabel: formatDateLabel(date),
     week: meeting.week_no,
     theme: meeting.theme || '',
+    isPast: !!data.isPast,
     sessions: data.sessions.map(function(r) {
       return {
         id: r.session_id.split('-').pop(),
@@ -671,6 +677,7 @@ function loadMeeting(date) {
   callRead_('getMeeting', { date: date })
     .then(function(data) {
       if (!data.meeting) { showCreatePrompt(); return; }
+      LIVE = true;
       mapData(data, date);
       _saveCache(data);
       render();
@@ -689,6 +696,7 @@ function loadMeeting(date) {
 
 function boot() {
   if (!getToken()) { showLogin(); return; }
+  LIVE = false;
   var _cached = _loadCache();
   if (_cached) {
     mapData(_cached.data, _cached.data.meeting.date);
@@ -696,12 +704,11 @@ function boot() {
     updateSaveStatus('stale');
     callRead_('getUpcoming', { today: todayStr() })
       .then(function(data) {
-        if (!data.meeting) { updateSaveStatus('cached', _cacheMeta(_cached.ts)); return; }
-        var freshStr = JSON.stringify(data);
-        var staleStr = JSON.stringify(_cached.data);
+        LIVE = true;
+        if (!data.meeting) { showCreatePrompt(); return; }
         _saveCache(data);
-        if (freshStr !== staleStr && !RUN.on) { mapData(data, data.meeting.date); render(); }
-        updateSaveStatus('clear');
+        if (!RUN.on) { mapData(data, data.meeting.date); render(); }
+        else { updateSaveStatus('clear'); }
       })
       .catch(function(err) {
         if (err.authFailed) {
@@ -717,6 +724,7 @@ function boot() {
     $('#plan').innerHTML = '<p class="sub" style="padding:40px 0">กำลังโหลด…</p>';
     callRead_('getUpcoming', { today: todayStr() })
       .then(function(data) {
+        LIVE = true;
         if (!data.meeting) { showCreatePrompt(); return; }
         mapData(data, data.meeting.date);
         _saveCache(data);
@@ -737,11 +745,45 @@ function boot() {
 
 function render(){
   if (!M) return;
+  var pastBadge = M.isPast ? ' <span style="color:var(--amber)">· ประชุมที่ผ่านมา</span>' : '';
   $('#hmeta').innerHTML = '<span style="cursor:pointer;text-decoration:underline dotted" onclick="editDate()" title="กดเพื่อเลื่อนวันประชุม">' +
-    esc(M.dateLabel) + ' · Week ' + M.week + '</span>';
+    esc(M.dateLabel) + ' · Week ' + M.week + '</span>' + pastBadge;
   if(TAB==='plan') $('#plan').innerHTML=planView();
   if(TAB==='run')  $('#run').innerHTML=runView();
   if(TAB==='recap')$('#recap').innerHTML=recapView();
+  applyEditLock_();
 }
+
+/* ================= EDIT LOCK ================= */
+// ปิดช่องแก้ไขทั้งหมดใน plan ขณะที่ยังไม่ได้ข้อมูลสด ยกเว้นปุ่ม next-week-btn
+function applyEditLock_() {
+  var locked = !LIVE;
+  document.querySelectorAll('#plan input, #plan select, #plan textarea, #plan button').forEach(function(el) {
+    if (el.id === 'next-week-btn') return;
+    el.disabled = locked;
+  });
+}
+
+/* ================= VISIBILITY REVALIDATE ================= */
+document.addEventListener('visibilitychange', function() {
+  if (document.hidden) {
+    _hiddenAt = Date.now();
+  } else {
+    var elapsed = Date.now() - _hiddenAt;
+    _hiddenAt = 0;
+    // ยิง silent revalidate เมื่อกลับมาที่ tab หลัง 60 วินาที
+    // ข้าม: กำลังจับเวลาอยู่, มีงานรอบันทึกอยู่, ยังไม่ได้ login
+    if (elapsed > 60000 && !RUN.on && !_dirtyTimer && M) {
+      callRead_('getUpcoming', { today: todayStr() })
+        .then(function(data) {
+          if (!data.meeting) return;
+          LIVE = true;
+          _saveCache(data);
+          if (!RUN.on) { mapData(data, data.meeting.date); render(); }
+        })
+        .catch(function() {});
+    }
+  }
+});
 
 boot();

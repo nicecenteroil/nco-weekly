@@ -42,7 +42,7 @@ function setupSheets() {
 // ---------------------------------------------------------------
 // Version
 // ---------------------------------------------------------------
-var VERSION = '1.3.1';
+var VERSION = '1.4.0';
 
 // ---------------------------------------------------------------
 // Helpers
@@ -229,6 +229,7 @@ function handleGetMeeting_(payload) {
 }
 
 // คืน meeting ที่ใกล้ที่สุดซึ่ง date >= today และ status != done
+// fallback: ถ้าไม่เจอ คืนประชุมที่ผ่านมาตัวล่าสุด พร้อม isPast: true
 function handleGetUpcoming_(payload) {
   var today    = payload.today;
   var meetings = rowsToObjects_(readAll_('MEETINGS'));
@@ -238,12 +239,28 @@ function handleGetUpcoming_(payload) {
       var da = toDateStr_(a.date), db = toDateStr_(b.date);
       return da < db ? -1 : da > db ? 1 : 0;
     });
-  if (!upcoming.length) {
+  if (upcoming.length) {
+    var meeting = upcoming[0];
+    meeting.date = toDateStr_(meeting.date);
+    var res = buildMeetingPayload_(meeting);
+    res.data.isPast = false;
+    return res;
+  }
+  // fallback — คืนประชุมที่ผ่านมาตัวที่ใหม่ที่สุด (ไม่กรอง status)
+  var past = meetings
+    .filter(function(m) { return toDateStr_(m.date) < today; })
+    .sort(function(a, b) {
+      var da = toDateStr_(a.date), db = toDateStr_(b.date);
+      return da > db ? -1 : da < db ? 1 : 0;
+    });
+  if (!past.length) {
     return { ok: true, data: { meeting: null, sessions: [], items: [], parking: [], openActions: [] } };
   }
-  var meeting = upcoming[0];
+  var meeting = past[0];
   meeting.date = toDateStr_(meeting.date);
-  return buildMeetingPayload_(meeting);
+  var res = buildMeetingPayload_(meeting);
+  res.data.isPast = true;
+  return res;
 }
 
 function handleCreateMeeting_(payload) {
