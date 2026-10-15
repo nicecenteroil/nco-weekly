@@ -94,3 +94,27 @@ pre.out{white-space:pre-wrap;background:#fff;border:1px solid var(--line);border
 .hint{font-size:12.5px;color:var(--ink3)}
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 @media (max-width:520px){.row{grid-template-columns:46px 1fr;padding-left:4px}.at{font-size:11.5px}}
+
+/* ---------- บริบทครั้งก่อน (หัวข้อที่ยกมา) ---------- */
+.prev{margin-top:8px;padding:8px 10px;border-left:3px solid #E9C46A;background:#FDF8EC;border-radius:0 7px 7px 0;font-size:13.5px}
+.prev-h{font-size:12px;font-weight:700;color:#8A6412;margin-bottom:2px}
+.prev-n{white-space:pre-wrap;color:var(--ink2);line-height:1.5}
+.prev-a{color:var(--ink);margin-top:3px;font-size:13.5px}
+.who{display:inline-block;font-size:12px;font-weight:600;color:var(--o);margin-left:4px}
+.stage .prev{margin:-2px 0 14px}
+
+/* ---------- หน้าสรุป ---------- */
+.rhead{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-top:24px}
+.hist{border:1px solid var(--line);border-radius:8px;padding:6px 9px;background:#fff;font-size:13.5px;max-width:100%}
+.stats{display:grid;grid-template-columns:repeat(5,1fr);gap:4px;padding:14px 10px;text-align:center}
+.stats .sub{margin:0;font-size:12px}
+.stats .big{font-size:24px}
+.rt{display:grid;grid-template-columns:26px 1fr;gap:8px;padding:12px 0;border-top:1px solid var(--line)}
+.qsess+.rt{border-top:0}
+.rt-n{font-weight:700;color:var(--ink3);font-variant-numeric:tabular-nums;padding-top:1px}
+.rt-t{font-weight:700;font-size:15.5px;line-height:1.4}
+.rt-m{display:flex;gap:10px;align-items:center;flex-wrap:wrap;font-size:12.5px;color:var(--ink3);margin-top:3px}
+.rt-note{white-space:pre-wrap;margin-top:7px;font-size:14px;color:var(--ink2);line-height:1.55}
+.chip.st-done{border-color:#9FC5AE;background:#EDF6F1;color:var(--green)}
+.chip.st-moved{border-color:#E9C46A;background:#FDF6E3;color:#8A6412}
+@media (max-width:520px){.stats{grid-template-columns:repeat(3,1fr);row-gap:12px}}

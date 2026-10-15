@@ -4,6 +4,13 @@
    ===================================================================== */
 
 const OWNERS={'DSR':'DSR','Castrol':'Castrol','NICE - Poom':'NICE · ภูมิ','NICE - Fern':'NICE · เฟิร์น'};
+// owner ที่ไม่อยู่ในรายการ (ข้อมูลเก่า เช่น "ภูมิ") ให้แสดงตามจริง ไม่ขึ้น undefined
+const ownLabel=k=>OWNERS[k]||k||'—';
+function ownOptions(cur){
+  const keys=Object.keys(OWNERS);
+  if(cur&&keys.indexOf(cur)===-1) keys.unshift(cur);
+  return keys.map(k=>`<option value="${esc(k)}" ${k===cur?'selected':''}>${esc(ownLabel(k))}</option>`).join('');
+}
 
 var M = null;
 var LIVE = false;   // true เมื่อได้ข้อมูลสดในเซสชันนี้แล้ว (ป้องกัน saveAgenda จาก stale cache)
@@ -210,7 +217,7 @@ function itemRow(i){
       <input class="t-in" value="${esc(i.t)}" aria-label="ชื่อหัวข้อ" oninput="byId(${i.id}).t=this.value;markDirty()">
       <div class="ctl">
         <select onchange="byId(${i.id}).own=this.value;markDirty()">
-          ${Object.keys(OWNERS).map(k=>`<option value="${k}" ${k===i.own?'selected':''}>${OWNERS[k]}</option>`).join('')}
+          ${ownOptions(i.own)}
         </select>
         <input type="number" min="5" step="5" value="${i.min}" onchange="byId(${i.id}).min=Math.max(5,+this.value||5);paint();markDirty()">
         <span class="unit">นาที</span>
@@ -221,7 +228,18 @@ function itemRow(i){
         <button class="icon" title="ลบหัวข้อ" onclick="del(${i.id})">×</button>
       </div>
       <input class="n-in" value="${esc(i.note)}" placeholder="โน้ตสั้น ๆ (ไม่ใส่ก็ได้)" oninput="byId(${i.id}).note=this.value;markDirty()">
+      ${prevBlock(i)}
     </div>
+  </div>`;
+}
+
+// บริบทจากครั้งก่อน ของหัวข้อที่ยกมา — โน้ตเดิม + งานที่ยังค้าง
+function prevBlock(i){
+  if(!i.prevNote&&!(i.prevActs&&i.prevActs.length))return '';
+  return `<div class="prev">
+    <div class="prev-h">ครั้งก่อน</div>
+    ${i.prevNote?`<div class="prev-n">${esc(i.prevNote)}</div>`:''}
+    ${(i.prevActs||[]).map(a=>`<div class="prev-a">→ ${esc(a.action)}${a.assignee?` <span class="who">${esc(a.assignee)}</span>`:''}</div>`).join('')}
   </div>`;
 }
 
@@ -233,7 +251,8 @@ function quickAdd(sid){
 }
 function pull(n){
   const a=M.lastActions[n];
-  M.items.push({id:++SEQ,s:'pm',t:'ติดตาม: '+a.act,own:'NICE - Poom',min:10,carry:true,carryFrom:'',note:a.who,act:'',who:'',st:'todo',apiId:'',spent:0});
+  M.items.push({id:++SEQ,s:'pm',t:'[ติดตาม] '+a.act+(a.who?' ('+a.who+')':''),own:'NICE - Poom',min:5,carry:true,carryFrom:a.id||'',note:'',act:'',who:'',acts:[],prevNote:'',prevActs:[],st:'todo',apiId:'',spent:0});
+  M.lastActions.splice(n,1);
   markDirty();
   render(); toast('ดันขึ้นวาระช่วงบ่ายแล้ว');
 }
@@ -253,7 +272,7 @@ function share(){
 หัวข้อหลัก: ${M.theme}
 
 `+M.sessions.map(s=>`▪️ ${s.title}  (${s.start}–${hhmm(mins(s.start)+planned(s.id))})
-`+inSess(s.id).map(i=>`  ${startAt(i)}  ${i.t} — ${OWNERS[i.own]} (${i.min}น.)`).join('\n')).join('\n\n')+`
+`+inSess(s.id).map(i=>`  ${startAt(i)}  ${i.t} — ${ownLabel(i.own)} (${i.min}น.)`).join('\n')).join('\n\n')+`
 
 ใครมีเรื่องแจ้งเพิ่ม ตอบในไลน์ก่อนศุกร์ 17:00 เดี๋ยวแทรกเข้าวาระให้`;
   copy(txt);
@@ -271,7 +290,7 @@ function runView(){
     <div class="stage">
       <div class="kicker">${esc(s.title)} · หัวข้อแรก</div>
       <h3>${esc(f.t)}</h3>
-      <div class="ctl" style="padding-left:0"><span class="chip">${OWNERS[f.own]}</span><span class="chip">${f.min} นาที</span></div>
+      <div class="ctl" style="padding-left:0"><span class="chip">${esc(ownLabel(f.own))}</span><span class="chip">${f.min} นาที</span></div>
       <div class="acts"><button class="btn o" onclick="startMeeting()">เริ่มจับเวลา</button></div>
       <p class="hint" style="margin-top:12px">ระหว่างประชุม แก้ชื่อหัวข้อ แทรกหัวข้อ หรือขยายเวลาได้ตลอด</p>
     </div>
@@ -286,8 +305,9 @@ function runView(){
   <p class="sub">หัวข้อ ${RUN.idx+1}/${S.length} · ปิดไปแล้ว ${dn}</p>
 
   <div class="stage">
-    <div class="kicker">${OWNERS[i.own]} · ตั้งไว้ ${i.min} นาที</div>
+    <div class="kicker">${esc(ownLabel(i.own))} · ตั้งไว้ ${i.min} นาที</div>
     <h3><input value="${esc(i.t)}" aria-label="ชื่อหัวข้อ" oninput="byId(${i.id}).t=this.value;markDirty()"></h3>
+    ${prevBlock(i)}
     <div class="clock">
       <div class="timer ${over?'over':''}">${pad(Math.floor(RUN.sec/60))}:${pad(RUN.sec%60)}</div>
       <div class="of">/ ${pad(i.min)}:00</div>
@@ -374,6 +394,7 @@ function close_(st){
     assignee:i.who||''
   }).then(function(){
     i.st=st; i.spent=capturedSec;
+    if(i.act){ i.acts=(i.acts||[]).concat([{action:i.act,assignee:i.who}]); i.act=''; i.who=''; }
     var now=new Date();
     updateSaveStatus('ok',pad(now.getHours())+':'+pad(now.getMinutes()));
     if(RUN.idx<S.length-1){RUN.idx++;RUN.sec=0;render();}
@@ -385,54 +406,142 @@ function close_(st){
 }
 
 /* ================= RECAP ================= */
-function minutesText(){
-  const acts=M.items.filter(i=>i.act),moved=M.items.filter(i=>i.st==='moved');
-  return `📝 สรุปประชุมทีม DSR — ${M.dateLabel}
+// สรุปแสดงทุกหัวข้อที่คุยแล้ว (ปิดแล้ว + ต่อสัปดาห์หน้า) พร้อมโน้ตและงานที่ต้องทำต่อ
+// R = ประชุมที่เลือกดูจากประวัติ (ไม่แตะ M) — null แปลว่าดูประชุมปัจจุบัน
+var R = null, MEETING_LIST = null;
+const ST_LABEL={done:'ปิดแล้ว',moved:'ต่อสัปดาห์หน้า',todo:'ยังไม่ได้คุย'};
 
-`+M.sessions.map(s=>{
-    const d=inSess(s.id).filter(i=>i.st==='done');
-    return d.length?`▪️ ${s.title}\n`+d.map(i=>`• ${i.t}${i.note?'\n   → '+i.note:''}`).join('\n'):'';
-  }).filter(Boolean).join('\n\n')+`
-
-✅ สิ่งที่ต้องไปทำต่อ
-${acts.length?acts.map(i=>`• ${i.act} — ${i.who||'ยังไม่ระบุคน'}`).join('\n'):'— ไม่มี —'}`+
-  (moved.length?'\n\n⏭ ยกไปสัปดาห์หน้า\n'+moved.map(i=>'• '+i.t).join('\n'):'')+
-  (M.park.length?'\n\n🅿️ เก็บไว้คุยรอบหน้า\n'+M.park.map(p=>'• '+p).join('\n'):'');
+function recapData(){ return R||M; }
+function talked(D){ return D.items.filter(i=>i.st==='done'||i.st==='moved'); }
+function itemActs(i){
+  const a=(i.acts||[]).slice();
+  if(i.act&&!a.some(x=>x.action===i.act)) a.push({action:i.act,assignee:i.who});
+  return a;
 }
-function recapView(){
-  const done=M.items.filter(i=>i.st==='done').length,moved=M.items.filter(i=>i.st==='moved').length;
-  if(!done&&!moved)return '<h2>ยังไม่มีสรุป</h2><p class="sub">สรุปจะถูกสร้างอัตโนมัติหลังปิดหัวข้อในหน้า "ประชุม"</p>';
-  const spent=M.items.reduce((a,i)=>a+(i.spent||0),0);
-  const acts=M.items.filter(i=>i.act),by={};
-  acts.forEach(i=>{const w=i.who||'ยังไม่ระบุคน';(by[w]=by[w]||[]).push(i.act);});
+function fmtMin(sec){ const m=Math.round((sec||0)/60); return m?m+' นาที':'<1 นาที'; }
 
-  return `
-  <h2>สรุปการประชุม</h2>
-  <p class="sub">${M.dateLabel}</p>
-  <div class="card">
-    <div class="bhead">
-      <div><div class="big">${Math.round(spent/60)} นาที</div><div class="sub" style="margin:2px 0 0">ใช้จริง จากที่วางไว้ ${M.sessions.reduce((a,s)=>a+planned(s.id),0)} นาที</div></div>
-      <div style="text-align:right"><div class="big">${done}<span style="font-size:16px;color:var(--ink3)">/${M.items.length}</span></div><div class="sub" style="margin:2px 0 0">หัวข้อที่ปิดได้</div></div>
-    </div>
+function minutesText(D){
+  D=D||recapData();
+  const T=talked(D), todo=D.items.filter(i=>i.st==='todo');
+  let n=0;
+  const body=D.sessions.map(s=>{
+    const list=T.filter(i=>i.s===s.id);
+    if(!list.length) return '';
+    return `▪️ ${s.title}\n`+list.map(i=>{
+      n++;
+      let t=`${n}. ${i.t}${i.st==='moved'?' (ต่อสัปดาห์หน้า)':''}`;
+      if(i.note) t+='\n'+i.note.trim().split('\n').filter(x=>x.trim()).map(x=>'   '+x.trim()).join('\n');
+      itemActs(i).forEach(a=>{ t+=`\n   ➜ ${a.action}${a.assignee?' — '+a.assignee:''}`; });
+      return t;
+    }).join('\n\n');
+  }).filter(Boolean).join('\n\n');
+
+  const allActs=[]; T.forEach(i=>itemActs(i).forEach(a=>allActs.push(a)));
+  const by={}; allActs.forEach(a=>{const w=a.assignee||'ยังไม่ระบุคน';(by[w]=by[w]||[]).push(a.action);});
+
+  return `📝 สรุปประชุมทีม DSR — ${D.dateLabel}\n\n`+(body||'— ยังไม่มีหัวข้อที่คุย —')+
+    (Object.keys(by).length?'\n\n✅ งานที่ต้องทำต่อ\n'+Object.entries(by).map(([w,l])=>`${w}\n`+l.map(x=>'  • '+x).join('\n')).join('\n'):'')+
+    (todo.length?'\n\n⏳ ยังไม่ได้คุย\n'+todo.map(i=>'• '+i.t).join('\n'):'')+
+    (D.park.length?'\n\n🅿️ เก็บไว้คุยรอบหน้า\n'+D.park.map(p=>'• '+p).join('\n'):'');
+}
+
+function historyPicker(D){
+  if(!MEETING_LIST) return `<button class="btn ghost sm" onclick="loadHistoryList()">ดูสรุปครั้งอื่น</button>`;
+  return `<select class="hist" onchange="pickHistory(this.value)">
+    ${MEETING_LIST.map(m=>`<option value="${m.date}" ${m.date===D.date?'selected':''}>${esc(formatDateLabel(m.date))} · ${m.talked}/${m.total} หัวข้อ${M&&m.meeting_id===M.meetingId?' (ปัจจุบัน)':''}</option>`).join('')}
+  </select>`;
+}
+
+function recapView(){
+  const D=recapData();
+  const T=talked(D), todo=D.items.filter(i=>i.st==='todo');
+  const head=`<div class="rhead"><h2 style="margin:0">สรุปการประชุม</h2>${historyPicker(D)}</div>
+    <p class="sub">${esc(D.dateLabel)} · Week ${D.week}</p>`;
+
+  if(!T.length){
+    // ประชุมปัจจุบันยังไม่ได้เริ่ม → เปิดสรุปครั้งล่าสุดที่มีการคุยให้อัตโนมัติ
+    if(!R && !recapView._tried){ recapView._tried=true; autoLastRecap(); }
+    return head+'<div class="card" style="padding:18px"><b>ยังไม่มีหัวข้อที่คุยในประชุมนี้</b><p class="sub" style="margin:4px 0 0">สรุปจะขึ้นหลังกด ปิดหัวข้อ หรือ ยกไปสัปดาห์หน้า ในหน้า "ประชุม" — หรือเลือกดูสรุปครั้งก่อนจากเมนูด้านบน</p></div>';
+  }
+
+  const spent=D.items.reduce((a,i)=>a+(i.spent||0),0);
+  const nDone=T.filter(i=>i.st==='done').length, nMoved=T.length-nDone;
+  const allActs=[]; T.forEach(i=>itemActs(i).forEach(a=>allActs.push(Object.assign({topic:i.t},a))));
+  const by={}; allActs.forEach(a=>{const w=a.assignee||'ยังไม่ระบุคน';(by[w]=by[w]||[]).push(a);});
+
+  let n=0;
+  const topics=D.sessions.map(s=>{
+    const list=T.filter(i=>i.s===s.id);
+    if(!list.length) return '';
+    return `<div class="qsess">${esc(s.title)}</div>`+list.map(i=>{
+      n++;
+      const acts=itemActs(i);
+      return `<div class="rt">
+        <div class="rt-n">${n}</div>
+        <div class="rt-b">
+          <div class="rt-t">${esc(i.t)}</div>
+          <div class="rt-m"><span class="chip st-${i.st}">${ST_LABEL[i.st]}</span><span>${esc(ownLabel(i.own))}</span><span>${fmtMin(i.spent)}</span></div>
+          ${i.note?`<div class="rt-note">${esc(i.note.trim())}</div>`:''}
+          ${acts.map(a=>`<div class="prev-a">→ ${esc(a.action)}${a.assignee?` <span class="who">${esc(a.assignee)}</span>`:''}</div>`).join('')}
+        </div>
+      </div>`;
+    }).join('');
+  }).join('');
+
+  return head+`
+  <div class="card stats">
+    <div><div class="big">${T.length}</div><div class="sub">หัวข้อที่คุย</div></div>
+    <div><div class="big">${nDone}</div><div class="sub">ปิดแล้ว</div></div>
+    <div><div class="big">${nMoved}</div><div class="sub">ต่อสัปดาห์หน้า</div></div>
+    <div><div class="big">${allActs.length}</div><div class="sub">งานที่ต้องทำต่อ</div></div>
+    <div><div class="big">${Math.round(spent/60)}</div><div class="sub">นาทีที่ใช้จริง</div></div>
   </div>
 
-  <h2>งานที่ต้องไปทำต่อ</h2>
-  <p class="sub">ที่ยังไม่ปิด จะเด้งขึ้นวาระสัปดาห์หน้า</p>
+  <h2>หัวข้อที่คุย</h2>
+  <div class="card" style="padding:4px 14px 10px">${topics}</div>
+
+  ${Object.keys(by).length?`<h2>งานที่ต้องทำต่อ แยกตามคน</h2>
+  <p class="sub">ที่ยังไม่ปิด จะติดไปกับหัวข้อในวาระสัปดาห์หน้า</p>
   <div class="card" style="padding:4px 14px 12px">
-    ${Object.keys(by).length?Object.entries(by).map(([w,l])=>`
+    ${Object.entries(by).map(([w,l])=>`
       <div class="person"><div class="avatar">${esc(w.slice(0,2))}</div>
         <div style="flex:1"><div style="font-weight:600">${esc(w)}</div>
-        ${l.map(a=>`<div style="color:var(--ink2);font-size:14px">• ${esc(a)}</div>`).join('')}</div></div>`).join('')
-      :'<p class="sub" style="padding:10px 0">ยังไม่มีใครได้รับงาน</p>'}
-  </div>
+        ${l.map(a=>`<div style="font-size:14px">• ${esc(a.action)} <span class="hint">— ${esc(a.topic)}</span></div>`).join('')}</div></div>`).join('')}
+  </div>`:''}
+
+  ${todo.length?`<h2>ยังไม่ได้คุย</h2><div class="card park" style="padding:6px 14px"><ul style="margin:0;padding:0">${todo.map(i=>`<li>${esc(i.t)}</li>`).join('')}</ul></div>`:''}
+  ${D.park.length?`<h2>Parking lot</h2><div class="card park" style="padding:6px 14px"><ul style="margin:0;padding:0">${D.park.map(p=>`<li>${esc(p)}</li>`).join('')}</ul></div>`:''}
 
   <h2>ข้อความส่งเข้าไลน์กลุ่ม</h2>
   <p class="sub">กดคัดลอกแล้ววางได้เลย</p>
-  <pre class="out">${esc(minutesText())}</pre>
+  <pre class="out">${esc(minutesText(D))}</pre>
   <div class="acts" style="margin-top:12px">
     <button class="btn o" onclick="copy(minutesText())">คัดลอกสรุป</button>
-    <button class="btn ghost" onclick="nextWeek()">สร้างวาระสัปดาห์หน้า</button>
+    ${!R?'<button class="btn ghost" onclick="nextWeek()">สร้างวาระสัปดาห์หน้า</button>':''}
   </div>`;
+}
+
+function loadHistoryList(){
+  return callRead_('listMeetings',{}).then(function(d){
+    MEETING_LIST=d.meetings||[];
+    if(TAB==='recap') render();
+    return MEETING_LIST;
+  }).catch(function(){ toast('โหลดรายการประชุมไม่สำเร็จ'); return []; });
+}
+function pickHistory(date){
+  if(M&&date===M.date){ R=null; render(); return; }
+  $('#recap').innerHTML='<p class="sub" style="padding:40px 0">กำลังโหลดสรุป…</p>';
+  callRead_('getMeeting',{date:date}).then(function(data){
+    if(!data.meeting){ toast('ไม่พบประชุมนี้'); R=null; render(); return; }
+    R=buildState(data,date);
+    render();
+  }).catch(function(err){ toast('โหลดไม่สำเร็จ: '+String(err).slice(0,60)); R=null; render(); });
+}
+function autoLastRecap(){
+  loadHistoryList().then(function(list){
+    const last=list.find(m=>m.talked>0&&(!M||m.meeting_id!==M.meetingId));
+    if(last) pickHistory(last.date);
+  });
 }
 
 // เสาร์ถัดไปหลังวันที่ของประชุมปัจจุบัน (ไม่ใช่ +7 วันตรง ๆ)
@@ -551,15 +660,26 @@ function isoWeek(dateStr) {
 }
 
 function mapData(data, date) {
+  M = buildState(data, date);
+  SEQ = M.items.length;
+  R = null; recapView._tried = false;
+}
+
+// แปลง payload จาก API เป็น state ของหน้าเว็บ — ไม่แตะตัวแปร global
+function buildState(data, date) {
   var meeting = data.meeting;
-  M = {
+  var actsByItem = {};
+  (data.actions || []).forEach(function(a) {
+    (actsByItem[a.item_id] = actsByItem[a.item_id] || []).push({ action: a.action, assignee: a.assignee });
+  });
+  var S = {
     meetingId: meeting.meeting_id,
     date: date,
     dateLabel: formatDateLabel(date),
-    week: meeting.week_no,
+    week: +meeting.week_no || 0,
     theme: meeting.theme || '',
     isPast: !!data.isPast,
-    sessions: data.sessions.map(function(r) {
+    sessions: data.sessions.slice().sort(function(a, b) { return (+a.seq || 0) - (+b.seq || 0); }).map(function(r) {
       return {
         id: r.session_id.split('-').pop(),
         seq: +r.seq || 1,
@@ -571,29 +691,37 @@ function mapData(data, date) {
     items: [],
     park: data.parking.map(function(r) { return r.text; }),
     lastActions: data.openActions.map(function(r) {
-      return { act: r.action, who: r.assignee, done: r.done === 'TRUE' };
+      return { id: r.action_id, act: r.action, who: r.assignee, done: r.done === 'TRUE' };
     })
   };
-  var maxId = 0;
-  M.items = data.items.map(function(r, idx) {
-    var numId = idx + 1;
-    maxId = numId;
+  // เรียงตาม session แล้วตาม seq — ชีตเรียงตามเวลาที่เขียน ไม่ใช่ลำดับวาระ
+  var sessOrder = {};
+  S.sessions.forEach(function(s, k) { sessOrder[s.id] = k; });
+  var rows = data.items.slice().sort(function(a, b) {
+    var sa = sessOrder[String(a.session_id).split('-').pop()] || 0;
+    var sb = sessOrder[String(b.session_id).split('-').pop()] || 0;
+    return sa - sb || (+a.seq || 0) - (+b.seq || 0);
+  });
+  S.items = rows.map(function(r, idx) {
     return {
-      id: numId,
+      id: idx + 1,
       apiId: r.item_id || '',
       carryFrom: r.carry_from || '',
-      s: r.session_id.split('-').pop(),
+      s: String(r.session_id).split('-').pop(),
       t: r.topic,
       own: r.owner,
       min: +(r.planned_min) || 15,
       carry: !!r.carry_from,
       note: r.note || '',
       act: '', who: '',
+      acts: actsByItem[r.item_id] || [],
+      prevNote: r.prev_note || '',
+      prevActs: r.prev_actions || [],
       spent: +(r.actual_sec) || 0,
       st: r.status
     };
   });
-  SEQ = maxId;
+  return S;
 }
 
 function showLogin() {
