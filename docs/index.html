@@ -12,7 +12,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="app.css?v=3">
+<link rel="stylesheet" href="app.css?v=5">
 </head>
 <body>
 
@@ -26,6 +26,7 @@
     <button id="t1" class="on" onclick="go('plan')">วางแผน</button>
     <button id="t2" onclick="go('run')">ประชุม</button>
     <button id="t3" onclick="go('recap')">สรุป</button>
+    <button id="t4" onclick="go('tasks')">งานค้าง</button>
   </nav>
 </header>
 
@@ -33,12 +34,14 @@
   <section id="plan"></section>
   <section id="run" hidden></section>
   <section id="recap" hidden></section>
+  <section id="tasks" hidden></section>
 </div>
 
 <div class="toast" id="toast"></div>
+<div class="ver" id="ver"></div>
 
-<script src="config.js?v=3"></script>
-<script src="api.js?v=3"></script>
-<script src="app.js?v=3"></script>
+<script src="config.js?v=5"></script>
+<script src="api.js?v=5"></script>
+<script src="app.js?v=5"></script>
 </body>
 </html>

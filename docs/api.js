@@ -31,6 +31,7 @@ function call(action, payload) {
       console.error('[api] error from GAS:', j.error);
       throw err;
     }
+    if (j.v && j.v !== window.API_VERSION) { window.API_VERSION = j.v; if (window.paintVersion) paintVersion(); }
     return j.data;
   });
 }

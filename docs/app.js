@@ -12,6 +12,7 @@ function ownOptions(cur){
   return keys.map(k=>`<option value="${esc(k)}" ${k===cur?'selected':''}>${esc(ownLabel(k))}</option>`).join('');
 }
 
+var APP_VERSION = '1.6.1';   // ขยับพร้อม VERSION ใน api/Code.js ทุกครั้ง
 var M = null;
 var LIVE = false;   // true เมื่อได้ข้อมูลสดในเซสชันนี้แล้ว (ป้องกัน saveAgenda จาก stale cache)
 var _hiddenAt = 0;  // timestamp ที่ tab ถูกซ่อน ใช้กับ visibilitychange
@@ -36,7 +37,12 @@ function startAt(item){
 }
 function toast(msg){const t=$('#toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),1700);}
 function copy(txt){navigator.clipboard?.writeText(txt).then(()=>toast('คัดลอกแล้ว — วางในไลน์กลุ่มได้เลย'),()=>toast('คัดลอกไม่สำเร็จ'));}
-function go(tab){TAB=tab;['plan','run','recap'].forEach((s,n)=>{$('#'+s).hidden=(s!==tab);$('#t'+(n+1)).classList.toggle('on',s===tab);});render();}
+const TABS=['plan','run','recap','tasks'];
+function go(tab){
+  TAB=tab;TABS.forEach((s,n)=>{$('#'+s).hidden=(s!==tab);$('#t'+(n+1)).classList.toggle('on',s===tab);});
+  if(tab==='tasks'&&!TASKS)loadTasks();
+  render();
+}
 
 /* ================= AUTOSAVE ================= */
 var _dirtyTimer = null;
@@ -311,18 +317,19 @@ function runView(){
     <div class="clock">
       <div class="timer ${over?'over':''}">${pad(Math.floor(RUN.sec/60))}:${pad(RUN.sec%60)}</div>
       <div class="of">/ ${pad(i.min)}:00</div>
-      <span class="pace ${behind>=0?'ok':'late'}">${behind>=0?'เร็วกว่าแผน '+Math.round(behind/60)+' นาที':'ช้ากว่าแผน '+Math.abs(Math.round(behind/60))+' นาที'}</span>
+      <span class="pace ${behind>-60?'ok':'late'}">${Math.abs(behind)<60?'ตรงตามแผน':behind>0?'เร็วกว่าแผน '+Math.round(behind/60)+' นาที':'ช้ากว่าแผน '+Math.round(-behind/60)+' นาที'}</span>
       <button class="btn ghost sm" onclick="toggle()">${RUN.on?'พัก':'เดินต่อ'}</button>
       <button class="btn ghost sm" onclick="bump(${i.id})">+5 นาที</button>
+      <button class="btn ghost sm proj-btn" onclick="toggleProj()">${PROJ?'ตัวหนังสือปกติ':'โหมดฉายจอ'}</button>
     </div>
 
     <label for="nn">บันทึกที่คุยกัน</label>
     <textarea id="nn" oninput="byId(${i.id}).note=this.value;markDirty()" placeholder="สรุปสั้น ๆ ว่าตกลงอะไร">${esc(i.note)}</textarea>
     <div class="two">
       <div><label for="na">Next action</label>
-        <input class="f-in" id="na" value="${esc(i.act)}" oninput="byId(${i.id}).act=this.value" placeholder="สิ่งที่ต้องไปทำต่อ"></div>
+        <input class="f-in" id="na" value="${esc(i.act)}" oninput="byId(${i.id}).act=this.value;saveRun_()" placeholder="สิ่งที่ต้องไปทำต่อ"></div>
       <div><label for="nw">ใครทำ</label>
-        <input class="f-in" id="nw" value="${esc(i.who)}" oninput="byId(${i.id}).who=this.value" placeholder="ชื่อ"></div>
+        <input class="f-in" id="nw" value="${esc(i.who)}" oninput="byId(${i.id}).who=this.value;saveRun_()" placeholder="ชื่อ"></div>
     </div>
 
     <div class="acts">
@@ -353,9 +360,50 @@ function elapsed(){let s=RUN.sec;seq().forEach(i=>{if(i.st!=='todo')s+=i.spent||
 function startMeeting(){RUN.idx=0;RUN.sec=0;toggle();}
 function toggle(){
   RUN.on=!RUN.on; clearInterval(RUN.tick);
-  if(RUN.on)RUN.tick=setInterval(()=>{RUN.sec++;paintTimer();},1000);
+  if(RUN.on)startTick_();
+  saveRun_();
   render();
 }
+function startTick_(){
+  clearInterval(RUN.tick);
+  RUN.tick=setInterval(()=>{RUN.sec++;paintTimer();if(RUN.sec%5===0)saveRun_();},1000);
+}
+
+/* ---------- ตัวจับเวลาไม่หายเมื่อรีเฟรช ----------
+   เก็บหัวข้อที่กำลังคุย วินาทีที่ใช้ สถานะเดิน/พัก และ next action ที่พิมพ์ค้างไว้ ลง localStorage
+   เปิดหน้าใหม่ในประชุมเดิม → กลับมาที่หัวข้อเดิม เวลาเดินต่อจากเดิม (นับช่วงที่หน้าปิดไปด้วย ถ้ากำลังเดินอยู่) */
+var RUN_KEY='nco_weekly_run';
+function saveRun_(){
+  try{
+    if(!M||RUN.idx<0){localStorage.removeItem(RUN_KEY);return;}
+    const i=seq()[RUN.idx]; if(!i)return;
+    localStorage.setItem(RUN_KEY,JSON.stringify({mid:M.meetingId,item:i.apiId,sec:RUN.sec,on:RUN.on,ts:Date.now(),act:i.act||'',who:i.who||''}));
+  }catch(e){}
+}
+function clearRun_(){try{localStorage.removeItem(RUN_KEY);}catch(e){}}
+function restoreRun_(){
+  if(!M)return false;
+  let r=null; try{r=JSON.parse(localStorage.getItem(RUN_KEY)||'null');}catch(e){}
+  if(!r||r.mid!==M.meetingId||!r.item)return false;
+  if(RUN.idx>=0){ // state ถูกโหลดใหม่ระหว่างพัก — คืน next action ที่พิมพ์ค้างไว้ให้หัวข้อเดิม
+    const cur=seq()[RUN.idx]; if(cur&&cur.apiId===r.item){cur.act=r.act||'';cur.who=r.who||'';}
+    return false;
+  }
+  if(Date.now()-r.ts>12*3600*1000){clearRun_();return false;}
+  const S=seq(), k=S.findIndex(x=>x.apiId===r.item);
+  if(k<0||S[k].st!=='todo'){clearRun_();return false;}
+  RUN.idx=k;
+  RUN.sec=r.sec+(r.on?Math.floor((Date.now()-r.ts)/1000):0);
+  S[k].act=r.act||''; S[k].who=r.who||'';
+  RUN.on=!!r.on; if(RUN.on)startTick_();
+  TAB='run'; TABS.forEach((s,n)=>{$('#'+s).hidden=(s!=='run');$('#t'+(n+1)).classList.toggle('on',s==='run');});
+  toast('กลับมาที่หัวข้อเดิม — เวลาเดินต่อจากเดิม');
+  return true;
+}
+
+/* ---------- โหมดฉายจอ ---------- */
+var PROJ=false; try{PROJ=localStorage.getItem('nco_weekly_proj')==='1';}catch(e){}
+function toggleProj(){PROJ=!PROJ;try{localStorage.setItem('nco_weekly_proj',PROJ?'1':'0');}catch(e){}render();}
 function paintTimer(){
   const el=document.querySelector('.timer'); if(!el)return;
   el.textContent=pad(Math.floor(RUN.sec/60))+':'+pad(RUN.sec%60);
@@ -397,8 +445,9 @@ function close_(st){
     if(i.act){ i.acts=(i.acts||[]).concat([{action:i.act,assignee:i.who}]); i.act=''; i.who=''; }
     var now=new Date();
     updateSaveStatus('ok',pad(now.getHours())+':'+pad(now.getMinutes()));
-    if(RUN.idx<S.length-1){RUN.idx++;RUN.sec=0;render();}
-    else{clearInterval(RUN.tick);RUN.on=false;toast('จบแล้ว — ไปหน้าสรุป');go('recap');}
+    TASKS=null;
+    if(RUN.idx<S.length-1){RUN.idx++;RUN.sec=0;saveRun_();render();}
+    else{clearInterval(RUN.tick);RUN.on=false;RUN.idx=-1;clearRun_();toast('จบแล้ว — ไปหน้าสรุป');go('recap');}
   }).catch(function(err){
     updateSaveStatus('err');
     alert('บันทึกไม่สำเร็จ: '+(String(err)||'').slice(0,80)+'\nกรุณาลองอีกครั้ง');
@@ -578,6 +627,70 @@ function nextWeek(){
     });
 }
 
+/* ================= TASKS (งานค้างทุกสัปดาห์) ================= */
+var TASKS = null, TASK_FILTER = '';
+function loadTasks(){
+  $('#tasks').innerHTML='<p class="sub" style="padding:40px 0">กำลังโหลดงานค้าง…</p>';
+  callRead_('listActions',{}).then(function(d){ TASKS=d; if(TAB==='tasks')render(); })
+    .catch(function(err){ $('#tasks').innerHTML='<div class="card" style="padding:18px;margin-top:24px"><b style="color:var(--red)">โหลดงานค้างไม่สำเร็จ</b><p class="sub">'+esc(String(err))+'</p><button class="btn ghost sm" onclick="loadTasks()">ลองใหม่</button></div>'; });
+}
+function daysSince(d){
+  if(!d)return '';
+  const p=d.split('-'), t=new Date(+p[0],+p[1]-1,+p[2]);
+  const n=Math.floor((Date.now()-t)/86400000);
+  return n<=0?'สัปดาห์นี้':n<7?n+' วันก่อน':Math.floor(n/7)+' สัปดาห์ก่อน';
+}
+function tasksView(){
+  if(!TASKS) return '<p class="sub" style="padding:40px 0">กำลังโหลดงานค้าง…</p>';
+  const open=TASKS.open, people={};
+  open.forEach(a=>{const w=a.assignee||'ยังไม่ระบุคน';people[w]=(people[w]||0)+1;});
+  const list=TASK_FILTER?open.filter(a=>(a.assignee||'ยังไม่ระบุคน')===TASK_FILTER):open;
+  const by={}; list.forEach(a=>{const w=a.assignee||'ยังไม่ระบุคน';(by[w]=by[w]||[]).push(a);});
+  return `
+  <div class="rhead"><h2 style="margin:0">งานค้างทุกสัปดาห์</h2>
+    <button class="btn ghost sm" onclick="loadTasks()">รีเฟรช</button></div>
+  <p class="sub">ติ๊กเมื่อทำเสร็จ งานที่ติ๊กแล้วจะไม่เด้งขึ้นวาระสัปดาห์หน้า</p>
+  <div class="filters">
+    <button class="fchip ${!TASK_FILTER?'on':''}" onclick="TASK_FILTER='';render()">ทั้งหมด <b>${open.length}</b></button>
+    ${Object.entries(people).map(([w,n])=>`<button class="fchip ${TASK_FILTER===w?'on':''}" data-w="${esc(w)}" onclick="TASK_FILTER=this.dataset.w;render()">${esc(w)} <b>${n}</b></button>`).join('')}
+  </div>
+  ${list.length?Object.entries(by).map(([w,l])=>`
+    <div class="card tgroup">
+      <div class="tg-h">${esc(w)} <span class="hint">${l.length} งาน</span></div>
+      ${l.map(a=>`<label class="task">
+        <input type="checkbox" onchange="tickTask('${a.action_id}',this)">
+        <span class="tk-b"><span class="tk-a">${esc(a.action)}</span>
+        <span class="tk-m">${a.topic?esc(a.topic)+' · ':''}${esc(daysSince(a.meeting_date))}</span></span>
+      </label>`).join('')}
+    </div>`).join('')
+  :'<div class="card" style="padding:18px"><b>ไม่มีงานค้าง</b><p class="sub" style="margin:4px 0 0">ทุกงานปิดครบแล้ว</p></div>'}
+
+  ${TASKS.closed.length?`<h2>ปิดไปใน 14 วันล่าสุด</h2>
+  <div class="card tgroup">
+    ${TASKS.closed.map(a=>`<div class="task done">
+      <span class="tk-b"><span class="tk-a">${esc(a.action)}</span>
+      <span class="tk-m">${esc(a.assignee||'ยังไม่ระบุคน')}${a.topic?' · '+esc(a.topic):''}</span></span>
+      <button class="btn ghost sm" onclick="reopenTask('${a.action_id}')">เปิดคืน</button>
+    </div>`).join('')}
+  </div>`:''}`;
+}
+function tickTask(id,el){
+  el.disabled=true; el.closest('.task').classList.add('closing');
+  call('closeAction',{action_id:id}).then(function(){
+    const k=TASKS.open.findIndex(a=>a.action_id===id);
+    if(k>=0){const a=TASKS.open.splice(k,1)[0];a.closed_at=todayStr();TASKS.closed.unshift(a);}
+    if(TASK_FILTER&&!TASKS.open.some(a=>(a.assignee||'ยังไม่ระบุคน')===TASK_FILTER))TASK_FILTER='';
+    toast('ปิดงานแล้ว'); render();
+  }).catch(function(){ el.disabled=false; el.checked=false; el.closest('.task').classList.remove('closing'); toast('ปิดงานไม่สำเร็จ ลองใหม่อีกครั้ง'); });
+}
+function reopenTask(id){
+  call('reopenAction',{action_id:id}).then(function(){
+    const k=TASKS.closed.findIndex(a=>a.action_id===id);
+    if(k>=0){const a=TASKS.closed.splice(k,1)[0];a.closed_at='';TASKS.open.push(a);}
+    toast('เปิดงานคืนแล้ว'); render();
+  }).catch(function(){ toast('เปิดคืนไม่สำเร็จ'); });
+}
+
 /* ================= RESCHEDULE ================= */
 function editDate() {
   var el = $('#hmeta');
@@ -663,6 +776,7 @@ function mapData(data, date) {
   M = buildState(data, date);
   SEQ = M.items.length;
   R = null; recapView._tried = false;
+  restoreRun_();
 }
 
 // แปลง payload จาก API เป็น state ของหน้าเว็บ — ไม่แตะตัวแปร global
@@ -871,6 +985,16 @@ function boot() {
   }
 }
 
+// ป้ายเวอร์ชันมุมล่าง — ถ้า API คนละเวอร์ชันกับหน้าเว็บ แปลว่ายังไม่ได้ deploy GAS ตัวใหม่
+function paintVersion(){
+  var el=document.getElementById('ver'); if(!el)return;
+  var api=window.API_VERSION;
+  var bad=api&&api!==APP_VERSION;
+  el.textContent='v'+APP_VERSION+(bad?' · API '+api+' ยังไม่ได้ deploy':'');
+  el.classList.toggle('warn',!!bad);
+  el.title=api?('หน้าเว็บ '+APP_VERSION+' · API '+api):'หน้าเว็บ '+APP_VERSION;
+}
+
 function render(){
   if (!M) return;
   var pastBadge = M.isPast ? ' <span style="color:var(--amber)">· ประชุมที่ผ่านมา</span>' : '';
@@ -879,6 +1003,8 @@ function render(){
   if(TAB==='plan') $('#plan').innerHTML=planView();
   if(TAB==='run')  $('#run').innerHTML=runView();
   if(TAB==='recap')$('#recap').innerHTML=recapView();
+  if(TAB==='tasks')$('#tasks').innerHTML=tasksView();
+  document.body.classList.toggle('stage-mode',TAB==='run'&&PROJ);
   applyEditLock_();
 }
 
@@ -914,4 +1040,5 @@ document.addEventListener('visibilitychange', function() {
   }
 });
 
+paintVersion();
 boot();

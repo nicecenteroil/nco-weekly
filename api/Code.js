@@ -42,7 +42,7 @@ function setupSheets() {
 // ---------------------------------------------------------------
 // Version
 // ---------------------------------------------------------------
-var VERSION = '1.5.0';
+var VERSION = '1.6.1';
 
 // ---------------------------------------------------------------
 // Helpers
@@ -236,6 +236,8 @@ function doPost(e) {
       case 'addParking':         return out_(handleAddParking_(payload));
       case 'closeAction':        return out_(handleCloseAction_(payload));
       case 'listMeetings':       return out_(handleListMeetings_(payload));
+      case 'listActions':        return out_(handleListActions_(payload));
+      case 'reopenAction':       return out_(handleReopenAction_(payload));
       default:                   return out_({ ok: false, error: 'ไม่รู้จัก action: ' + action });
     }
   } catch (err) {
@@ -244,6 +246,7 @@ function doPost(e) {
 }
 
 function out_(r) {
+  r.v = VERSION;   // หน้าเว็บใช้แสดงเวอร์ชัน API และเตือนถ้ายังไม่ได้ deploy
   return ContentService.createTextOutput(JSON.stringify(r)).setMimeType(ContentService.MimeType.JSON);
 }
 
@@ -599,6 +602,53 @@ function handleCloseAction_(payload) {
     SpreadsheetApp.flush();
     lock.releaseLock();
   }
+}
+
+// เปิดงานที่ปิดไปกลับคืน (กดติ๊กผิด)
+function handleReopenAction_(payload) {
+  var lock = LockService.getScriptLock();
+  lock.waitLock(10000);
+  try {
+    var aSheet = sh_('ACTIONS');
+    var aData  = aSheet.getDataRange().getValues();
+    var h      = aData[0];
+    var idIdx  = h.indexOf('action_id'), dnIdx = h.indexOf('done'), clIdx = h.indexOf('closed_at');
+    for (var i = 1; i < aData.length; i++) {
+      if (String(aData[i][idIdx]) === payload.action_id) {
+        aSheet.getRange(i + 1, dnIdx + 1, 1, 1).setValue('FALSE');
+        aSheet.getRange(i + 1, clIdx + 1, 1, 1).setValue('');
+        break;
+      }
+    }
+    return { ok: true, data: { action_id: payload.action_id } };
+  } finally {
+    SpreadsheetApp.flush();
+    lock.releaseLock();
+  }
+}
+
+// งานทั้งหมดข้ามสัปดาห์ — ค้างอยู่ทั้งหมด + ที่ปิดใน 14 วันล่าสุด พร้อมชื่อหัวข้อและวันประชุมต้นทาง
+function handleListActions_(payload) {
+  var itemsById = {};
+  rowsToObjects_(readAll_('AGENDA_ITEMS')).forEach(function(r) { itemsById[String(r.item_id)] = r; });
+  var dateById = {};
+  rowsToObjects_(readAll_('MEETINGS')).forEach(function(m) { dateById[m.meeting_id] = toDateStr_(m.date); });
+  var cutoff = Utilities.formatDate(new Date(Date.now() - 14 * 86400000), 'Asia/Bangkok', 'yyyy-MM-dd');
+
+  var out = { open: [], closed: [] };
+  rowsToObjects_(readAll_('ACTIONS')).forEach(function(a) {
+    var it = itemsById[String(a.item_id)];
+    var row = {
+      action_id: a.action_id, action: a.action, assignee: a.assignee,
+      topic: it ? it.topic : '', meeting_date: dateById[a.meeting_id] || '',
+      closed_at: String(a.closed_at || '')
+    };
+    if (String(a.done) !== 'TRUE') out.open.push(row);
+    else if (row.closed_at.slice(0, 10) >= cutoff) out.closed.push(row);
+  });
+  out.open.sort(function(a, b) { return a.meeting_date < b.meeting_date ? -1 : a.meeting_date > b.meeting_date ? 1 : 0; });
+  out.closed.sort(function(a, b) { return a.closed_at < b.closed_at ? 1 : -1; });
+  return { ok: true, data: out };
 }
 
 // ---------------------------------------------------------------
