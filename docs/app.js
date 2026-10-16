@@ -950,7 +950,7 @@ function boot() {
         if (!data.meeting) { showCreatePrompt(); return; }
         _saveCache(data);
         if (!RUN.on) { mapData(data, data.meeting.date); render(); }
-        else { updateSaveStatus('clear'); }
+        updateSaveStatus('clear');
       })
       .catch(function(err) {
         if (err.authFailed) {
@@ -990,7 +990,7 @@ function paintVersion(){
   var el=document.getElementById('ver'); if(!el)return;
   var api=window.API_VERSION;
   var bad=api&&api!==APP_VERSION;
-  el.textContent='v'+APP_VERSION+(bad?' · API '+api+' ยังไม่ได้ deploy':'');
+  el.textContent='v'+APP_VERSION+(bad?' · API '+(api==='old'?'ตัวเก่า':api)+' ยังไม่ได้ deploy':'');
   el.classList.toggle('warn',!!bad);
   el.title=api?('หน้าเว็บ '+APP_VERSION+' · API '+api):'หน้าเว็บ '+APP_VERSION;
 }
@@ -1028,14 +1028,16 @@ document.addEventListener('visibilitychange', function() {
     // ยิง silent revalidate เมื่อกลับมาที่ tab หลัง 60 วินาที
     // ข้าม: กำลังจับเวลาอยู่, มีงานรอบันทึกอยู่, ยังไม่ได้ login
     if (elapsed > 60000 && !RUN.on && !_dirtyTimer && M) {
+      updateSaveStatus('stale');
       callRead_('getUpcoming', { today: todayStr() })
         .then(function(data) {
-          if (!data.meeting) return;
+          if (!data.meeting) { updateSaveStatus('clear'); return; }
           LIVE = true;
           _saveCache(data);
           if (!RUN.on) { mapData(data, data.meeting.date); render(); }
+          updateSaveStatus('clear');
         })
-        .catch(function() {});
+        .catch(function() { updateSaveStatus('clear'); });
     }
   }
 });
