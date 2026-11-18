@@ -842,7 +842,7 @@ function showLogin() {
   $('#hmeta').textContent = '';
   $('#plan').innerHTML =
     '<div class="card" style="max-width:360px;margin:60px auto;padding:24px">' +
-    '<div class="brand" style="margin-bottom:16px">NCO <span>Weekly</span></div>' +
+    '<div class="brand" style="margin-bottom:16px">NICE <span>Weekly</span></div>' +
     '<label for="pc">Passcode</label>' +
     '<input class="f-in" id="pc" type="password" placeholder="กรอก passcode" style="margin:6px 0 14px" onkeydown="if(event.key===\'Enter\')login()">' +
     '<button class="btn o" onclick="login()" style="width:100%">เข้าใช้งาน</button>' +
